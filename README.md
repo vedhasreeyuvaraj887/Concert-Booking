@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Concert Ticket Booking Backend
 
 500 seats, 10,000 students, zero double-bookings. **FastAPI + PostgreSQL**, Docker, nginx.
@@ -66,3 +67,6 @@ python loadtest/loadtest.py               # 10,000 concurrent users; asserts the
 
 ## Known limitations
 No authentication (the client sends `user_id`); payments are simulated; single event only.
+=======
+# Concert-Booking
+>>>>>>> 80c70f8796544aebf523327582c6a2eed3fff436
