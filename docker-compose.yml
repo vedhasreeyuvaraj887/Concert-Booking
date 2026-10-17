@@ -1,0 +1,21 @@
+services:
+  db:
+    image: postgres:16-alpine
+    command: postgres -c max_connections=300
+    environment: { POSTGRES_USER: ticket, POSTGRES_PASSWORD: ticket, POSTGRES_DB: ticketing }
+    ports: ["5432:5432"]
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck: { test: ["CMD-SHELL", "pg_isready -U ticket -d ticketing"], interval: 3s, retries: 20 }
+  app:                       # scale with: docker compose up --scale app=3
+    build: .
+    environment:
+      DATABASE_URL: postgresql://ticket:ticket@db:5432/ticketing
+      HOLD_SECONDS: 120      # reservation lifetime
+      TOTAL_SEATS: 500
+    depends_on: { db: { condition: service_healthy } }
+  proxy:                     # reverse proxy / load balancer in front of all app replicas
+    image: nginx:1.27-alpine
+    ports: ["8080:80"]
+    volumes: ["./nginx/nginx.conf:/etc/nginx/nginx.conf:ro"]
+    depends_on: [app]
+volumes: { pgdata: {} }

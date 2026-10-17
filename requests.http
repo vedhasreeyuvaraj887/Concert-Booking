@@ -1,0 +1,46 @@
+### Install the "REST Client" VS Code extension, then click "Send Request" above each block.
+@base = http://localhost:8000
+
+### 1. Create users
+POST {{base}}/users
+Content-Type: application/json
+
+{"name": "Asha", "email": "asha@vit.ac.in"}
+
+### 2. View available seats
+GET {{base}}/seats?status=AVAILABLE
+
+### 3. Reserve seat 7 for user 1 (idempotent: resend with same key -> same booking)
+POST {{base}}/reservations
+Content-Type: application/json
+Idempotency-Key: demo-key-1
+
+{"user_id": 1, "seat_id": 7}
+
+### 4. Reservation status (countdown in seconds_left)
+GET {{base}}/bookings/1
+
+### 5. Pay: mode = success | fail | delayed
+POST {{base}}/bookings/1/pay
+Content-Type: application/json
+Idempotency-Key: pay-key-1
+
+{"mode": "success"}
+
+### 6. Booking history
+GET {{base}}/users/1/bookings
+
+### 7. Cancel (refunds if paid; seat goes to next waitlisted user, else back to pool)
+POST {{base}}/bookings/1/cancel
+
+### 8. Waitlist (only when sold out)
+POST {{base}}/waitlist
+Content-Type: application/json
+
+{"user_id": 2}
+
+###
+GET {{base}}/waitlist/1
+
+###
+GET {{base}}/stats
