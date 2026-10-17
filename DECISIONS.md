@@ -1,0 +1,16 @@
+DECISIONS
+1. What was the most technically challenging part, and how did you approach it?
+
+The trickiest aspect was managing concurrency. It wasn’t just about preventing two people from booking the same seat. The real challenge was ensuring that things like expiry times, payments, and retries all worked seamlessly together. For instance, a hold can expire right as someone makes a payment, a user might accidentally click "pay" twice, or a delayed payment could still be processing when the hold times out. I tackled this by ensuring that each of these scenarios was safe even if the background cleanup job fell behind schedule. Each read checks the expires_at time against the current time, rather than relying on a stored status. For payments and cancellations, I locked the booking row to ensure they’re processed one at a time. I also saved idempotency keys within the same transaction, so if a retry occurs, the same response is returned. I confirmed everything worked with a smoke test and a load test simulating 10,000 users.
+
+2. Describe one important design decision and why you chose it over alternatives.
+
+I decided to allow the PostgreSQL database to enforce the rule of “only one active booking per seat” using a unique index, rather than doing it within the Python code. Other alternatives were using application-level locks or checking seat availability before inserting a booking, both of which rely heavily on flawless code and can falter when multiple app servers are in play. With this database approach, if 1,000 users try to book the same seat simultaneously, only one will succeed, and the others will get a 409 error. This method is straightforward, remains accurate even if I scale up app servers, and there’s no lock management to worry about. The trade-off is that the database might become a performance bottleneck, but I preferred a simpler, more reliable solution over a faster yet riskier one.
+
+3. What is one limitation or failure case your implementation does not handle well?
+
+One important limitation is that the seat map viewing feature isn’t optimized. Every GET /seats request hits the database directly, meaning that if 10,000 students refresh their screens at the same time, it can slow down the booking process. While the bookings remain accurate, response times will lag right when interest is highest. A few smaller limitations include the lack of a login system (as users just send a user_id), simulated payments, and support for only one event.
+
+4. If you had another week, what would you improve first and why?
+
+First, I’d focus on improving the seat map load, as it’s the most likely to create issues on launch day. I’d consider caching the seat map in Redis for a brief period, set up PgBouncer in front of the database to better manage connections, and implement a queue that allows users to access the system at a steady pace. After addressing that, I’d work on adding real authentication, dealing with payments that get stuck, and supporting multiple events.
